@@ -1,7 +1,7 @@
 name: rsk_downloader
 description: NexGrab - YouTube, direct link and web video downloader for Android
 publish_to: "none"
-version: 3.2.0+4
+version: 3.2.1+5
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

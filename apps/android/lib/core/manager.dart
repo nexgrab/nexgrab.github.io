@@ -290,8 +290,41 @@ class DownloadManager {
     if (!res.ok && _mayRetryDirect(proxy, res.err)) {
       res = await _ytdlp(url: url, args: infoArgs(cookieFile: _cookies, playlist: playlist));
     }
-    if (!res.ok) throw UserFacingException(ytdlpError(res.err));
+    if (!res.ok) {
+      // X hides some videos from logged-out users -> ask FxTwitter for the direct file
+      final x = await _xFallback(url);
+      if (x != null) return x;
+      throw UserFacingException(ytdlpError(res.err));
+    }
     return infoFromJson(url, res.out);
+  }
+
+  /// Tests can replace the FxTwitter request.
+  Future<String?> Function(String url)? xFetchOverride;
+
+  Future<String?> _getText(String url) async {
+    final c = route.client();
+    try {
+      final req = await c.getUrl(Uri.parse(url)).timeout(const Duration(seconds: 20));
+      req.headers.set(HttpHeaders.userAgentHeader, 'NexGrab/3.2');
+      final res = await req.close().timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) return null;
+      return await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 20));
+    } finally {
+      c.close(force: true);
+    }
+  }
+
+  /// FxTwitter lookup for X / Twitter links (same network route as everything else).
+  Future<MediaInfo?> _xFallback(String url) async {
+    final id = xStatusId(url);
+    if (id == null) return null;
+    try {
+      final body = await (xFetchOverride ?? _getText)(fxApiUrl(id));
+      return body == null ? null : infoFromFx(url, body);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Analyze a link. yt-dlp (1000+ sites) first; the built-in engine is the backup
@@ -634,7 +667,8 @@ class DownloadManager {
     try {
       var proxy = await _ytdlpProxy();
       List<String> args(String px) =>
-          downloadArgs(option: task.option, dir: dir.path, proxy: px, cookieFile: _cookies);
+          downloadArgs(option: task.option, dir: dir.path, proxy: px, cookieFile: _cookies,
+              fixedName: task.sourceUrl.contains('video.twimg.com') ? task.title : null);
       var res = await _ytdlp(id: task.id, url: task.sourceUrl, args: args(proxy), stream: true);
       token.check();
       if (!res.ok && !res.canceled && _mayRetryDirect(proxy, res.err)) {

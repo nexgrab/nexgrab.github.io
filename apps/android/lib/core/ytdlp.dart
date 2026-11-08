@@ -40,11 +40,15 @@ List<String> downloadArgs({
   required String dir,
   String proxy = '',
   String? cookieFile,
+  String? fixedName,
 }) {
   final playlist = option.playlist;
-  final tmpl = playlist
-      ? '$dir/%(playlist_index|0)03d - %(title).120B [%(id)s].%(ext)s'
-      : '$dir/%(title).150B [%(id)s].%(ext)s';
+  final safe = fixedName == null ? '' : safeFileName(fixedName);
+  final tmpl = safe.isNotEmpty
+      ? '$dir/$safe [X].%(ext)s'
+      : playlist
+          ? '$dir/%(playlist_index|0)03d - %(title).120B [%(id)s].%(ext)s'
+          : '$dir/%(title).150B [%(id)s].%(ext)s';
   return [
     '-f', option.format ?? 'b/best',
     '-o', tmpl,
@@ -310,4 +314,68 @@ String ytdlpError(String err) {
   if (isYtdlpNetworkError(m)) return 'Network error: connection nahi bana. Internet / Orbot check karein.\n\n$main';
   if (main.isEmpty) return 'Download fail ho gaya.';
   return main.length > 400 ? '${main.substring(0, 400)}…' : main;
+}
+
+
+// ---------------------------------------------------------------------------- X / Twitter fallback
+// X hides many videos (e.g. "sensitive" posts) from logged-out visitors, so yt-dlp finds nothing.
+// FxTwitter's public API returns the direct video.twimg.com files for those posts.
+final RegExp xStatusRe = RegExp(
+    r'https?://(?:www\.|mobile\.)?(?:x|twitter|fxtwitter|vxtwitter|fixupx|fixvx)\.com/'
+    r'(?:i/web/status/|i/status/|[^/?#]+/status(?:es)?/)(\d+)',
+    caseSensitive: false);
+
+String? xStatusId(String url) => xStatusRe.firstMatch(url)?.group(1);
+
+String fxApiUrl(String id) => 'https://api.fxtwitter.com/status/$id';
+
+/// File-name safe text (also safe inside a yt-dlp output template).
+String safeFileName(String s) {
+  final t = s.replaceAll(RegExp(r'[\\/:*?"<>|\r\n\t%]+'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  return t.length > 80 ? t.substring(0, 80).trim() : t;
+}
+
+/// Builds the media card from an api.fxtwitter.com answer, or null when it has no video.
+MediaInfo? infoFromFx(String url, String body) {
+  Map<String, dynamic> j;
+  try {
+    j = (jsonDecode(body) as Map).cast<String, dynamic>();
+  } catch (_) {
+    return null;
+  }
+  final tw = (j['tweet'] as Map?)?.cast<String, dynamic>();
+  final videos = ((tw?['media'] as Map?)?['videos'] as List?)?.whereType<Map>().toList() ?? const [];
+  for (final v in videos) {
+    final mp4 = ((v['variants'] as List?) ?? const [])
+        .whereType<Map>()
+        .where((x) => x['content_type'] == 'video/mp4' && x['url'] is String)
+        .toList()
+      ..sort((a, b) => ((b['bitrate'] ?? 0) as num).compareTo((a['bitrate'] ?? 0) as num));
+    final best = mp4.isNotEmpty ? mp4.first['url'] as String : v['url'] as String?;
+    if (best == null || best.isEmpty) continue;
+    final w = ((v['width'] ?? 0) as num).toInt();
+    final h = ((v['height'] ?? 0) as num).toInt();
+    final res = (w > 0 && h > 0) ? (w < h ? w : h) : 0;
+    final text = ((tw?['text'] as String?) ?? '').replaceAll(RegExp(r'\s+'), ' ').trim();
+    final author = ((tw?['author'] as Map?)?['screen_name'] as String?) ?? '';
+    final dur = ((v['duration'] ?? 0) as num).toDouble();
+    MediaOption opt(String id, String label, String detail, String mode) => MediaOption(
+          id: id, label: label, detail: detail, kind: OptionKind.ytdlp,
+          ext: mode == 'mp3' ? 'mp3' : 'mp4', mime: mode == 'mp3' ? 'audio/mpeg' : 'video/mp4',
+          parts: const [], height: mode == 'mp3' ? null : (res > 0 ? res : null), format: 'b/best', mode: mode);
+    return MediaInfo(
+      sourceUrl: best,
+      title: text.isEmpty ? 'X video' : (text.length > 90 ? text.substring(0, 90) : text),
+      site: 'X',
+      author: author.isEmpty ? null : '@$author',
+      thumbnail: (v['thumbnail_url'] as String?)?.startsWith('https://') == true ? v['thumbnail_url'] as String : null,
+      duration: dur > 0 ? Duration(milliseconds: (dur * 1000).round()) : null,
+      viaYtdlp: true,
+      options: [
+        opt('x-best', 'Best quality', res > 0 ? '${res}p · MP4' : 'MP4', 'file'),
+        opt('x-mp3', 'Audio MP3', '192 kbps', 'mp3'),
+      ],
+    );
+  }
+  return null;
 }

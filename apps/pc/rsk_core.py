@@ -28,7 +28,7 @@ from urllib.parse import urlparse
 import yt_dlp
 
 APP_NAME = "NexGrab"
-APP_VERSION = "3.2"
+APP_VERSION = "3.2.1"
 DEVELOPER = "WSNex"
 
 IS_WIN = sys.platform.startswith("win")
@@ -669,6 +669,54 @@ class MediaInfo:
         self.count = len([e for e in (info.get("entries") or []) if e]) if self.is_playlist else 1
 
 
+# ---------------------------------------------------------------------------- X / Twitter fallback
+# X hides many videos (e.g. "sensitive" posts) from logged-out visitors, so yt-dlp finds nothing.
+# FxTwitter's public API returns the direct video.twimg.com files for those posts.
+X_RE = re.compile(r"https?://(?:www\.|mobile\.)?(?:x|twitter|fxtwitter|vxtwitter|fixupx|fixvx)\.com/"
+                  r"(?:i/web/status/|i/status/|[^/?#]+/status(?:es)?/)(\d+)", re.I)
+
+
+def x_lookup(url: str, proxy: str = "") -> dict | None:
+    m = X_RE.search(url or "")
+    if not m:
+        return None
+    tid = m.group(1)
+    try:
+        data = json.loads(fetch_bytes(f"https://api.fxtwitter.com/status/{tid}", proxy).decode("utf-8", "replace"))
+    except Exception:
+        return None
+    tw = data.get("tweet") or {}
+    vids = []
+    for v in (tw.get("media") or {}).get("videos") or []:
+        mp4 = [x for x in v.get("variants") or [] if x.get("content_type") == "video/mp4" and x.get("url")]
+        best = max(mp4, key=lambda x: x.get("bitrate") or 0)["url"] if mp4 else v.get("url")
+        if best:
+            vids.append({"url": best, "w": v.get("width") or 0, "h": v.get("height") or 0,
+                         "duration": v.get("duration") or 0, "thumb": v.get("thumbnail_url") or ""})
+    if not vids:
+        return None
+    text = re.sub(r"\s+", " ", tw.get("text") or "").strip()
+    author = (tw.get("author") or {}).get("screen_name") or ""
+    return {"id": tid, "title": text[:90] or f"X video {tid}", "uploader": f"@{author}" if author else "",
+            "videos": vids}
+
+
+def _x_media(url: str, x: dict, proxy: str, has_ffmpeg: bool, warns: list) -> "MediaInfo":
+    v = x["videos"][0]
+    info = {"title": x["title"], "uploader": x["uploader"], "duration": v["duration"] or None,
+            "thumbnail": v["thumb"] or None, "webpage_url_domain": "x.com", "extractor_key": "X (FxTwitter)",
+            "id": x["id"]}
+    res = min(v["w"], v["h"]) if v["w"] and v["h"] else 0
+    choices = [Choice(f"Best quality  •  {res}p mp4" if res else "Best quality  •  mp4", "b/best", "video", 0, res or None)]
+    if has_ffmpeg:
+        choices.append(Choice("Audio MP3 (192 kbps)", "b/best", "mp3", 0, None, True))
+    if len(x["videos"]) > 1:
+        warns.append(f"Is post mein {len(x['videos'])} videos hain - pehli wali download hogi.")
+    mi = MediaInfo(v["url"], info, choices, proxy, warns)
+    mi.site = "x.com"
+    return mi
+
+
 def analyze(url: str, settings: dict, tools: Tools, net: NetworkState, playlist=False, cookies="None") -> MediaInfo:
     url = (url or "").strip()
     m = re.search(r"https?://\S+", url)
@@ -689,9 +737,17 @@ def analyze(url: str, settings: dict, tools: Tools, net: NetworkState, playlist=
     if net.mode == "auto":
         net.refresh_tor()
     proxy = net.proxy()
+    is_x = bool(X_RE.search(url))
     try:
         info, warns = run(proxy)
+        if is_x and not (info.get("formats") or info.get("url") or info.get("entries")):
+            raise ValueError("No video could be found in this tweet")
     except Exception as exc:
+        if is_x:
+            # X hides the video from logged-out users -> ask FxTwitter for the direct file
+            x = x_lookup(url, proxy)
+            if x:
+                return _x_media(url, x, proxy, bool(tools.ffmpeg), ["X video FxTwitter ke zariye mili."])
         if net.can_bypass_tor(proxy) and is_bot_check(str(exc)):
             # Auto mode: YouTube blocks Tor exits -> same request on Direct
             info, warns = run("")
@@ -917,6 +973,10 @@ class Manager:
     def _opts_for(self, t: Task, proxy: str):
         opts = base_opts(self.settings, self.tools, proxy, t.cookies)
         tmpl = "%(title)s [%(id)s].%(ext)s"
+        if "video.twimg.com" in (t.url or ""):
+            # direct X file (FxTwitter): its own "title" is just "464" -> use the tweet text
+            safe = re.sub(r'[\\/:*?"<>|\r\n\t%]+', " ", t.title or "X video").strip()[:80] or "X video"
+            tmpl = safe + " [X].%(ext)s"
         if t.playlist:
             tmpl = os.path.join("%(playlist_title|Playlist)s", "%(playlist_index|0)03d - " + tmpl)
         opts.update({
