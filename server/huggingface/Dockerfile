@@ -8,7 +8,6 @@ COPY requirements.txt .
 RUN pip install -U -r requirements.txt && chmod -R a+w /usr/local/lib/python3.12/site-packages /usr/local/bin
 COPY app.py .
 EXPOSE 7860
-# Start the web server at once (fast wake-up on the free plan). yt-dlp is refreshed in the
-# background; the new version is used from the next start. Access log OFF: no links are logged.
-CMD (pip install -q -U "yt-dlp[default]" >/dev/null 2>&1 &) ; \
-    exec uvicorn app:app --host 0.0.0.0 --port 7860 --no-access-log --proxy-headers --forwarded-allow-ips='*'
+# Start the web server at once (fast wake-up on the free plan). The newest yt-dlp is installed
+# when the image is built (every deploy). Access log OFF: no links are logged.
+CMD exec uvicorn app:app --host 0.0.0.0 --port 7860 --no-access-log --proxy-headers --forwarded-allow-ips='*'
