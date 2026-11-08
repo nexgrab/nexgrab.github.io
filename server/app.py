@@ -103,6 +103,12 @@ def friendly(err: Exception | str) -> str:
         return "Is post ke liye login chahiye ya ye private hai. NexGrab app mein cookies ke saath try karein."
     if "unsupported url" in l:
         return "Ye website supported nahi hai."
+    if "nsfw" in l or "sensitive" in l or "age-restricted" in l or "age restricted" in l:
+        return ("Ye post 'sensitive / 18+' hai - website ise login ke baghair nahi dekh sakti. "
+                "NexGrab app mein apni cookies.txt daal kar try karein.")
+    if "[twitter]" in l and ("no video" in l or "no media" in l):
+        return ("X ne is post ki video nahi di. Ya to post mein sirf photo / text hai, ya X ne ise 'Sensitive content' "
+                "bana kar sirf login walon ke liye rakha hai (tab website se nahi milegi - NexGrab app + cookies use karein).")
     if "no video" in l or "no media" in l or "there is no video" in l:
         return "Is link mein video nahi mili (sirf photo / text ho sakti hai)."
     if "file is larger than" in l or "max_filesize" in l:
