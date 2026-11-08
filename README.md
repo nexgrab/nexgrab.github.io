@@ -15,7 +15,7 @@ No login. No history. Website + Android + Windows.</p>
 | `.github/workflows/` | `Build apps` = builds APK + EXE and publishes a Release. |
 
 ## Publish a new app version
-GitHub -> **Actions** -> **Build apps** -> **Run workflow** -> type the version (e.g. `3.2.1`).
+Change `apps/VERSION` (e.g. `3.2.1`) and push - or GitHub -> **Actions** -> **Build apps** -> **Run workflow**.
 About 15-20 minutes later the Release appears and the website's download buttons point to it automatically
 (`releases/latest/download/NexGrab.apk`, `NexGrab_32bit.apk`, `NexGrab_Windows.zip`).
 

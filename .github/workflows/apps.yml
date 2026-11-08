@@ -1,6 +1,6 @@
 name: Build apps
 # Builds the Android APKs + Windows EXE on GitHub's machines and publishes a Release.
-# Start it: Actions -> Build apps -> Run workflow   (or push a tag like v3.2.1)
+# Start it: change apps/VERSION (e.g. 3.2.1) and push - or Actions -> Build apps -> Run workflow
 on:
   workflow_dispatch:
     inputs:
@@ -10,13 +10,29 @@ on:
         default: "3.2.0"
   push:
     tags: ["v*"]
+    branches: [main]
+    paths: ["apps/VERSION"]          # bump apps/VERSION to publish a new release
 permissions:
   contents: write
-env:
-  VERSION: ${{ github.event.inputs.version || github.ref_name }}
 jobs:
-  android:
+  meta:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          V="${{ github.event.inputs.version }}"
+          if [ -z "$V" ] && [[ "$GITHUB_REF" == refs/tags/* ]]; then V="${GITHUB_REF_NAME}"; fi
+          if [ -z "$V" ]; then V="$(tr -d ' \r\n' < apps/VERSION)"; fi
+          V="${V#v}"; echo "version=$V" >> "$GITHUB_OUTPUT"; echo "Version: $V"
+
+  android:
+    needs: meta
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -42,7 +58,7 @@ jobs:
       - name: Build APKs
         working-directory: apps/android
         run: |
-          V="${VERSION#v}"
+          V="$VERSION"
           flutter pub get
           flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 \
             --build-name "$V" --build-number "$((100 + GITHUB_RUN_NUMBER))"
@@ -56,6 +72,7 @@ jobs:
           path: out/*.apk
 
   windows:
+    needs: meta
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -82,8 +99,10 @@ jobs:
           path: out/NexGrab_Windows.zip
 
   release:
-    needs: [android, windows]
+    needs: [meta, android, windows]
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -92,7 +111,7 @@ jobs:
       - run: ls -la dist
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(env.VERSION, 'v') && env.VERSION || format('v{0}', env.VERSION) }}
+          tag_name: v${{ env.VERSION }}
           name: NexGrab ${{ env.VERSION }}
           make_latest: true
           body: |
