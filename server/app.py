@@ -14,6 +14,7 @@ API
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -24,6 +25,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlparse
+from urllib.request import Request as UrlRequest, urlopen
 
 import yt_dlp
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
@@ -80,7 +82,7 @@ def base_opts() -> dict:
         "quiet": True, "no_warnings": True, "noplaylist": True, "noprogress": True,
         "socket_timeout": 30, "retries": 5, "fragment_retries": 10, "concurrent_fragment_downloads": 4,
         "max_filesize": MAX_FILESIZE, "cachedir": False, "restrictfilenames": False,
-        "windowsfilenames": True, "trim_file_name": 150,
+        "windowsfilenames": True,
     }
     if PROXY:
         o["proxy"] = PROXY
@@ -120,6 +122,49 @@ def friendly(err: Exception | str) -> str:
     return s[:300] or "Kuch ghalat ho gaya. Dobara try karein."
 
 
+# ----------------------------------------------------------------------------- X / Twitter
+# X hides many videos (e.g. "sensitive" posts) from logged-out visitors, so yt-dlp finds nothing.
+# FxTwitter's public API returns the direct video.twimg.com files for those posts - try it first.
+X_RE = re.compile(r"https?://(?:www\.|mobile\.)?(?:x|twitter|fxtwitter|vxtwitter|fixupx|fixvx)\.com/"
+                  r"(?:i/web/status/|i/status/|[^/?#]+/status(?:es)?/)(\d+)", re.I)
+
+
+def x_lookup(url: str) -> dict | None:
+    m = X_RE.search(url or "")
+    if not m:
+        return None
+    tid = m.group(1)
+    try:
+        req = UrlRequest(f"https://api.fxtwitter.com/status/{tid}", headers={"User-Agent": f"NexGrab/{APP_VERSION}"})
+        with urlopen(req, timeout=20) as r:
+            data = json.loads(r.read().decode("utf-8", "replace"))
+    except Exception:  # noqa: BLE001
+        return None
+    tw = data.get("tweet") or {}
+    vids = []
+    for v in (tw.get("media") or {}).get("videos") or []:
+        mp4 = [x for x in v.get("variants") or [] if x.get("content_type") == "video/mp4" and x.get("url")]
+        best = max(mp4, key=lambda x: x.get("bitrate") or 0)["url"] if mp4 else v.get("url")
+        if best:
+            vids.append({"url": best, "w": v.get("width") or 0, "h": v.get("height") or 0,
+                         "duration": v.get("duration") or 0, "thumb": v.get("thumbnail_url") or ""})
+    if not vids:
+        return None
+    text = re.sub(r"\s+", " ", tw.get("text") or "").strip()
+    author = (tw.get("author") or {}).get("screen_name") or ""
+    return {"id": tid, "title": (text[:90] or f"X video {tid}"), "uploader": f"@{author}" if author else "", "videos": vids}
+
+
+def x_options(x: dict) -> list[dict]:
+    opts = []
+    for i, v in enumerate(x["videos"]):
+        res = f"{min(v['w'], v['h']) or v['h']}p MP4" if v["h"] else "MP4"
+        label = "Best quality" if len(x["videos"]) == 1 else f"Video {i + 1}"
+        opts.append({"id": f"x{i}", "label": label, "detail": res, "kind": "video"})
+    opts.append({"id": "xmp3", "label": "Audio MP3", "detail": "192 kbps", "kind": "audio"})
+    return opts
+
+
 def build_options(info: dict) -> list[dict]:
     fmts = info.get("formats") or []
     heights = sorted({int(f["height"]) for f in fmts if f.get("height") and f.get("vcodec") not in (None, "none")},
@@ -156,8 +201,10 @@ def format_for(option: str) -> tuple[dict, str]:
             {"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]}, "audio"
     if option == "m4a":
         return {"format": "ba[ext=m4a]/ba/b"}, "audio"
-    if option == "file":
+    if option == "file" or re.fullmatch(r"x\d", option):
         return {"format": "b/best"}, "file"
+    if option == "xmp3":
+        return format_for("mp3")
     raise UserError("Ghalat option.")
 
 
@@ -235,8 +282,17 @@ def run_job(job: Job) -> None:
                 "match_filter": yt_dlp.utils.match_filter_func(f"!is_live & duration <=? {MAX_DURATION}"),
             }
             job.status, job.stage = "downloading", "Shuru ho raha hai"
+            target = job.url
+            if job.option.startswith("x"):
+                x = x_lookup(job.url)
+                if not x:
+                    raise UserError("X se video nahi mili. Dobara try karein.")
+                idx = 0 if job.option == "xmp3" else int(job.option[1:])
+                target = x["videos"][min(idx, len(x["videos"]) - 1)]["url"]
+                safe = re.sub(r'[\\/:*?"<>|\n\r\t]+', " ", x["title"]).strip()[:80] or "X video"
+                opts["outtmpl"] = str(folder / f"{safe} [{x['id']}].%(ext)s")
             with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(job.url, download=True)
+                info = ydl.extract_info(target, download=True)
                 if info is None:
                     raise UserError("Ye video lambi hai ya live hai (website par allowed nahi).")
             files = [p for p in folder.iterdir() if p.is_file() and not p.name.endswith((".part", ".ytdl"))]
@@ -299,6 +355,11 @@ def health():
 @app.post("/api/info")
 def info(body: InfoIn):
     url = check_url(body.url)
+    x = x_lookup(url)
+    if x:
+        v = x["videos"][0]
+        return {"url": url, "title": x["title"], "uploader": x["uploader"], "duration": int(v["duration"] or 0),
+                "site": "X", "thumbnail": v["thumb"] if v["thumb"].startswith("https://") else "", "options": x_options(x)}
     try:
         with yt_dlp.YoutubeDL(base_opts() | {"skip_download": True}) as ydl:
             data = ydl.extract_info(url, download=False)
