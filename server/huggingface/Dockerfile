@@ -5,9 +5,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certi
  && apt-get purge -y unzip && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install -r requirements.txt && chmod -R a+w /usr/local/lib/python3.12/site-packages /usr/local/bin
+RUN pip install -U -r requirements.txt && chmod -R a+w /usr/local/lib/python3.12/site-packages /usr/local/bin
 COPY app.py .
 EXPOSE 7860
-# yt-dlp refreshed on every start. Access log OFF: no links are logged.
-CMD pip install -q -U "yt-dlp[default]" || true; \
+# Start the web server at once (fast wake-up on the free plan). yt-dlp is refreshed in the
+# background; the new version is used from the next start. Access log OFF: no links are logged.
+CMD (pip install -q -U "yt-dlp[default]" >/dev/null 2>&1 &) ; \
     exec uvicorn app:app --host 0.0.0.0 --port 7860 --no-access-log --proxy-headers --forwarded-allow-ips='*'
