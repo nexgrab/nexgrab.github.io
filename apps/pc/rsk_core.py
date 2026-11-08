@@ -28,7 +28,7 @@ from urllib.parse import urlparse
 import yt_dlp
 
 APP_NAME = "NexGrab"
-APP_VERSION = "3.2.1"
+APP_VERSION = "3.2.2"
 DEVELOPER = "WSNex"
 
 IS_WIN = sys.platform.startswith("win")

@@ -636,6 +636,17 @@ class DownloadManager {
     }
   }
 
+  /// Half-downloaded pieces from a refused attempt must not be "continued" by the next one.
+  void _dropPartials(Directory dir) {
+    try {
+      for (final f in dir.listSync().whereType<File>()) {
+        if (f.path.endsWith('.part') || f.path.endsWith('.ytdl') || RegExp(r'\.part-Frag\d+').hasMatch(f.path)) {
+          f.deleteSync();
+        }
+      }
+    } catch (_) {}
+  }
+
   Future<void> _runYtdlp(DownloadTask task, CancelToken token, Directory dir) async {
     if (!await _ytdlpAvailable()) {
       throw UserFacingException('Download engine shuru nahi ho saka. $ytdlpInitError');
@@ -666,8 +677,8 @@ class DownloadManager {
     });
     try {
       var proxy = await _ytdlpProxy();
-      List<String> args(String px) =>
-          downloadArgs(option: task.option, dir: dir.path, proxy: px, cookieFile: _cookies,
+      List<String> args(String px, [List<String> extra = const []]) =>
+          downloadArgs(option: task.option, dir: dir.path, proxy: px, cookieFile: _cookies, extra: extra,
               fixedName: task.sourceUrl.contains('video.twimg.com') ? task.title : null);
       var res = await _ytdlp(id: task.id, url: task.sourceUrl, args: args(proxy), stream: true);
       token.check();
@@ -675,6 +686,26 @@ class DownloadManager {
         proxy = '';
         res = await _ytdlp(id: task.id, url: task.sourceUrl, args: args(''), stream: true);
         token.check();
+      }
+      // YouTube 403 on the media files: try other YouTube player clients, then a fresh yt-dlp.
+      if (!res.ok && !res.canceled && isYoutubeUrl(task.sourceUrl) && isForbiddenError(res.err)) {
+        _dropPartials(dir);
+        task.stage = 'YouTube ne roka - doosre tareeqe se try...';
+        _notify();
+        res = await _ytdlp(id: task.id, url: task.sourceUrl, args: args(proxy, youtubeRetryArgs), stream: true);
+        token.check();
+        final age = DateTime.now().millisecondsSinceEpoch - settings.lastYtdlpUpdate;
+        if (!res.ok && !res.canceled && isForbiddenError(res.err) && age > const Duration(hours: 6).inMilliseconds) {
+          task.stage = 'Engine update ho raha hai...';
+          _notify();
+          try {
+            await updateYtdlp();
+          } catch (_) {}
+          _dropPartials(dir);
+          res = await _ytdlp(id: task.id, url: task.sourceUrl, args: args(proxy), stream: true);
+          token.check();
+        }
+        task.stage = '';
       }
       if (res.canceled) throw CanceledException();
       final files = {...streamedFiles, ...parseFiles(res.out)}.where((f) => File(f).existsSync()).toList();

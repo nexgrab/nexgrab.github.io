@@ -41,6 +41,7 @@ List<String> downloadArgs({
   String proxy = '',
   String? cookieFile,
   String? fixedName,
+  List<String> extra = const [],
 }) {
   final playlist = option.playlist;
   final safe = fixedName == null ? '' : safeFileName(fixedName);
@@ -65,9 +66,19 @@ List<String> downloadArgs({
     '--concurrent-fragments', '4',
     if (option.mode == 'mp3') ...['-x', '--audio-format', 'mp3', '--audio-quality', '192K'],
     if (option.mode == 'video') ...['--merge-output-format', 'mp4/mkv'],
+    ...extra,
     ...commonArgs(proxy: proxy, cookieFile: cookieFile),
   ];
 }
+
+/// YouTube refuses some stream URLs (HTTP 403) unless a special token is sent. These player
+/// clients usually work without one - used for an automatic second try.
+const List<String> youtubeRetryArgs = ['--extractor-args', 'youtube:player_client=android_vr,tv,web_safari'];
+
+bool isYoutubeUrl(String url) =>
+    RegExp(r'https?://([\w-]+\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)/', caseSensitive: false).hasMatch(url);
+
+bool isForbiddenError(String err) => err.toLowerCase().contains('http error 403');
 
 /// One parsed "RSKP ..." progress line.
 class YtProgress {
@@ -309,7 +320,10 @@ String ytdlpError(String err) {
     return 'Video private / delete / region-blocked hai.\n\n$main';
   }
   if (m.contains('http error 404')) return 'Link par file nahi mili (404).';
-  if (m.contains('http error 403')) return 'Server ne access deny kiya (403). Dobara Analyze karein ya TOR switch badal kar dekhein.';
+  if (m.contains('http error 403')) {
+    return 'Server ne access deny kiya (403). App ne doosre tareeqon se bhi try kiya. Thori der baad Retry karein, '
+        'ya TOR switch badal kar dekhein.\n\n${main.length > 160 ? main.substring(0, 160) : main}';
+  }
   if (m.contains('http error 429')) return 'Bohat zyada requests (429). Thori der baad ya TOR switch ON karke try karein.';
   if (isYtdlpNetworkError(m)) return 'Network error: connection nahi bana. Internet / Orbot check karein.\n\n$main';
   if (main.isEmpty) return 'Download fail ho gaya.';
