@@ -26,7 +26,8 @@ release, so a new APK installs over the old one.
 `config.js` - `API` (download server URL) and `REPO` (this repo, for the app download links).
 
 ## Download server
-Deploy `server/` anywhere that runs Docker (Render blueprint: `render.yaml`, free plan works).
+Live on Hugging Face: Space `WSNex/nexgrab-api` (files in `server/huggingface/` + `server/app.py`, `server/requirements.txt`).
+Also runs anywhere with Docker (Render blueprint: `render.yaml`).
 
 | Env var | Default | Meaning |
 |---|---|---|
