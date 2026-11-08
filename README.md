@@ -1,4 +1,4 @@
-<p align="center"><img src="web/assets/logo.png" width="96" alt="NexGrab"></p>
+<p align="center"><img src="assets/logo.png" width="96" alt="NexGrab"></p>
 <h1 align="center">NexGrab</h1>
 <p align="center"><b>Paste. Grab. Done.</b> - free video & audio downloader for YouTube, Instagram, Facebook, TikTok, X and 1000+ sites.<br>
 No login. No history. Website + Android + Windows.</p>
@@ -7,12 +7,12 @@ No login. No history. Website + Android + Windows.</p>
 
 | Folder | What |
 |---|---|
-| `web/` | The website (GitHub Pages). Paste a link -> pick quality -> download. Nothing is stored. |
+| `index.html`, `app.js`, `style.css`, `assets/` | The website (GitHub Pages, served from the repo root). Paste a link -> pick quality -> download. Nothing is stored. |
 | `server/` | Tiny download server the website talks to (FastAPI + yt-dlp + ffmpeg). No database, no logs of links; files are deleted right after download. |
 | `apps/android/` | Android app (Flutter + yt-dlp engine, Tor support). |
 | `apps/pc/` | Windows app (Python + customtkinter + yt-dlp). |
 | `apps/` (root files) | Local builders for Windows PCs (`NexGrab Builder.bat`, `BUILD_ALL.bat`). |
-| `.github/workflows/` | `Website` = publishes `web/` to GitHub Pages. `Build apps` = builds APK + EXE and publishes a Release. |
+| `.github/workflows/` | `Build apps` = builds APK + EXE and publishes a Release. |
 
 ## Publish a new app version
 GitHub -> **Actions** -> **Build apps** -> **Run workflow** -> type the version (e.g. `3.2.1`).
@@ -23,7 +23,7 @@ Secret `ANDROID_DEBUG_KEYSTORE_B64` (Settings -> Secrets -> Actions) keeps the s
 release, so a new APK installs over the old one.
 
 ## Website settings
-`web/config.js` - `API` (download server URL) and `REPO` (this repo, for the app download links).
+`config.js` - `API` (download server URL) and `REPO` (this repo, for the app download links).
 
 ## Download server
 Deploy `server/` anywhere that runs Docker (Render blueprint: `render.yaml`, free plan works).
