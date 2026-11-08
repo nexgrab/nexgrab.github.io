@@ -1,0 +1,106 @@
+name: Build apps
+# Builds the Android APKs + Windows EXE on GitHub's machines and publishes a Release.
+# Start it: Actions -> Build apps -> Run workflow   (or push a tag like v3.2.1)
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. 3.2.1)"
+        required: true
+        default: "3.2.0"
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+env:
+  VERSION: ${{ github.event.inputs.version || github.ref_name }}
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Signing key (same key every release = app updates over the old one)
+        env:
+          KEY_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEY_B64" ]; then
+            mkdir -p ~/.android && echo "$KEY_B64" | base64 -d > ~/.android/debug.keystore
+            echo "Using NexGrab signing key"
+          else
+            echo "::warning::ANDROID_DEBUG_KEYSTORE_B64 secret missing - APK signed with a random key (users must uninstall before updating)."
+          fi
+      - name: Prepare Android project
+        run: bash scripts/prepare_android.sh
+      - name: Build APKs
+        working-directory: apps/android
+        run: |
+          V="${VERSION#v}"
+          flutter pub get
+          flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 \
+            --build-name "$V" --build-number "$((100 + GITHUB_RUN_NUMBER))"
+          mkdir -p ../../out
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk ../../out/NexGrab.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk ../../out/NexGrab_32bit.apk
+          ls -la ../../out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: out/*.apk
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build EXE
+        shell: cmd
+        run: |
+          cd apps\pc
+          call build_exe.bat nopause
+          if errorlevel 1 exit /b 1
+      - name: Collect
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          $zip = Get-ChildItem apps/pc/release/*_Windows.zip | Select-Object -First 1
+          if (-not $zip) { Compress-Archive -Force -Path "apps/pc/release/NexGrab" -DestinationPath out/NexGrab_Windows.zip }
+          else { Copy-Item $zip.FullName out/NexGrab_Windows.zip }
+          Get-ChildItem out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/NexGrab_Windows.zip
+
+  release:
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: ls -la dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(env.VERSION, 'v') && env.VERSION || format('v{0}', env.VERSION) }}
+          name: NexGrab ${{ env.VERSION }}
+          make_latest: true
+          body: |
+            **NexGrab** - YouTube, Instagram, Facebook, TikTok, X + 1000 sites.
+
+            | File | For |
+            |---|---|
+            | `NexGrab.apk` | Android (all modern phones) |
+            | `NexGrab_32bit.apk` | very old 32-bit Android phones |
+            | `NexGrab_Windows.zip` | Windows 10/11 - extract, run `NexGrab.exe` (keep the `tools` folder) |
+          files: dist/*

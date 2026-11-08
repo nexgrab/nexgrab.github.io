@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NexGrab - Paste link, download video</title>
+  <meta name="description" content="NexGrab: free video & audio downloader. YouTube, Instagram, Facebook, TikTok, X and 1000+ sites. No login, no history - just paste and download. Android and Windows apps too.">
+  <meta name="theme-color" content="#060a13">
+  <meta property="og:title" content="NexGrab - Paste. Grab. Done.">
+  <meta property="og:description" content="Free video & audio downloader for 1000+ sites. No login, no history.">
+  <meta property="og:image" content="assets/logo-512.png">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <header class="top">
+    <a class="brand" href="./" aria-label="NexGrab home">
+      <img src="assets/logo.png" alt="" width="40" height="40">
+      <span>Nex<b>Grab</b></span>
+    </a>
+    <nav>
+      <a href="#apps">Apps</a>
+      <a href="#how">Kaise?</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ======================= HERO / DOWNLOADER ======================= -->
+    <section class="hero" id="grab">
+      <p class="eyebrow"><span class="dot"></span> No login · No history · Free</p>
+      <h1>Paste. <span class="grad">Grab.</span> Done.</h1>
+      <p class="sub">YouTube, Instagram, Facebook, TikTok, X aur 1000+ websites ki video ya audio - link paste karein aur download.</p>
+
+      <form class="paste" id="pasteForm" autocomplete="off" novalidate>
+        <div class="field">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>
+          <input id="url" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Video ka link yahan paste karein..." aria-label="Video link">
+          <button type="button" class="ghost" id="pasteBtn" title="Clipboard se paste">Paste</button>
+          <button type="button" class="ghost clear" id="clearBtn" title="Saaf karein" hidden>✕</button>
+        </div>
+        <button type="submit" class="cta" id="grabBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+          <span>Grab</span>
+        </button>
+      </form>
+      <div class="status-row">
+        <span class="pill" id="serverPill"><i></i><span>Server check ho raha hai...</span></span>
+      </div>
+
+      <!-- message -->
+      <div class="msg" id="msg" hidden></div>
+
+      <!-- result -->
+      <article class="card result" id="result" hidden>
+        <div class="thumb" id="thumb"><span class="site" id="site"></span><span class="dur" id="dur"></span></div>
+        <div class="meta">
+          <h2 id="title"></h2>
+          <p id="uploader"></p>
+          <div class="opts" id="opts"></div>
+        </div>
+      </article>
+
+      <!-- progress -->
+      <article class="card prog" id="prog" hidden>
+        <div class="prog-head">
+          <strong id="stage">Shuru ho raha hai</strong>
+          <span class="pct" id="pct">0%</span>
+        </div>
+        <div class="bar"><div id="bar"></div></div>
+        <div class="prog-foot">
+          <span id="pinfo">&nbsp;</span>
+          <button class="ghost small" id="cancelBtn" type="button">Cancel</button>
+        </div>
+      </article>
+
+      <!-- done -->
+      <article class="card done" id="done" hidden>
+        <div class="check">✓</div>
+        <div>
+          <strong>Download shuru ho gaya</strong>
+          <p id="doneName"></p>
+          <p class="muted small">File server se foran delete ho gayi - hum kuch save nahi karte.</p>
+        </div>
+        <button class="ghost" id="againBtn" type="button">Naya link</button>
+      </article>
+    </section>
+
+    <!-- ======================= APPS ======================= -->
+    <section class="apps" id="apps">
+      <h2 class="sec">Apps bhi hain - <span class="grad">aur bhi taqatwar</span></h2>
+      <p class="sec-sub">App aap ke apne internet se chalti hai: YouTube zyada reliable, bari files, poori playlists, Tor support, pause / resume.</p>
+      <div class="app-grid">
+        <a class="app" id="dlAndroid" href="#" rel="noopener">
+          <div class="app-ico android"><svg viewBox="0 0 24 24"><path d="M7 9h10v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2zM7 8a5 5 0 0 1 10 0zM9.5 5.5 8 3.5M14.5 5.5 16 3.5M4.5 10v5M19.5 10v5"/></svg></div>
+          <div class="app-txt">
+            <strong>Android</strong>
+            <span>Aaj kal ke sab phones (64-bit)</span>
+            <em class="ver" data-asset="NexGrab.apk">APK</em>
+          </div>
+          <span class="go">Download</span>
+        </a>
+        <a class="app" id="dlWindows" href="#" rel="noopener">
+          <div class="app-ico win"><svg viewBox="0 0 24 24"><path d="M3 5.5 10.5 4.5v7H3zM12 4.3 21 3v8.5h-9zM3 12.5h7.5v7L3 18.5zM12 12.5h9V21l-9-1.3z"/></svg></div>
+          <div class="app-txt">
+            <strong>Windows</strong>
+            <span>Windows 10 / 11 (zip: EXE + tools)</span>
+            <em class="ver" data-asset="NexGrab_Windows.zip">ZIP</em>
+          </div>
+          <span class="go">Download</span>
+        </a>
+        <a class="app slim" id="dlAndroid32" href="#" rel="noopener">
+          <div class="app-ico android"><svg viewBox="0 0 24 24"><path d="M7 9h10v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2zM7 8a5 5 0 0 1 10 0z"/></svg></div>
+          <div class="app-txt">
+            <strong>Android 32-bit</strong>
+            <span>Sirf bohat purane phones ke liye</span>
+            <em class="ver" data-asset="NexGrab_32bit.apk">APK</em>
+          </div>
+          <span class="go">Download</span>
+        </a>
+      </div>
+      <p class="muted small center" id="relInfo">&nbsp;</p>
+
+      <div class="compare">
+        <div><h3>Website</h3><ul><li>Kuch install nahi</li><li>Ek-ek video</li><li>Max ~1 GB file</li><li>YouTube kabhi kabhi block</li></ul></div>
+        <div class="hl"><h3>App</h3><ul><li>1000+ sites, poori playlist</li><li>Bari files, pause / resume</li><li>Tor ON / OFF switch</li><li>YouTube zyada reliable</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ======================= HOW ======================= -->
+    <section class="how" id="how">
+      <h2 class="sec">Kaise kaam karta hai</h2>
+      <ol class="steps">
+        <li><b>1</b><h3>Link copy</h3><p>YouTube / Instagram / kisi bhi app mein <em>Share → Copy link</em>.</p></li>
+        <li><b>2</b><h3>Paste + Grab</h3><p>Upar box mein paste karein, <em>Grab</em> dabayein, quality chunein.</p></li>
+        <li><b>3</b><h3>Download</h3><p>Progress bar poora hote hi file aap ke phone / PC mein.</p></li>
+      </ol>
+    </section>
+
+    <!-- ======================= FAQ ======================= -->
+    <section class="faq" id="faq">
+      <h2 class="sec">Sawal jawab</h2>
+      <details><summary>Kya login ya account chahiye?</summary><p>Nahi. Koi login nahi, koi account nahi, koi cookie banner nahi.</p></details>
+      <details><summary>Kya aap meri history ya links save karte hain?</summary><p>Nahi. Server koi database nahi rakhta aur links log nahi karta. File aap ke download karte hi server se delete ho jati hai; jo file koi na le woh 15 minute mein khud delete ho jati hai.</p></details>
+      <details><summary>File kahan save hoti hai?</summary><p>Browser ke normal Downloads folder mein. Phone par: File Manager → Download.</p></details>
+      <details><summary>YouTube par "bot" wala error aaya?</summary><p>YouTube kabhi kabhi servers ko rok deta hai. Thori der baad try karein - ya NexGrab Android / Windows app use karein, woh aap ke apne internet se chalti hai aur aisa kam hota hai.</p></details>
+      <details><summary>APK install kaise karein?</summary><p>APK download karein → kholein → "Install unknown apps" ki ijazat dein (sirf browser ke liye) → Install. Purani RSK Downloader app ke upar bhi update ho jati hai.</p></details>
+      <details><summary>Windows "unknown publisher" kehta hai?</summary><p>App signed nahi hai is liye. <em>More info → Run anyway</em> dabayein. Zip extract karke <em>NexGrab.exe</em> chalayein (tools folder saath rakhein).</p></details>
+      <details><summary>Kya ye free hai?</summary><p>Haan, poori tarah free.</p></details>
+    </section>
+  </main>
+
+  <footer>
+    <img src="assets/logo.png" alt="" width="28" height="28">
+    <p>© <span id="yr"></span> NexGrab · by WSNex</p>
+    <p class="muted small">Sirf woh content download karein jis ka aap ko haq ya ijazat ho. NexGrab kisi website se mutaliq nahi.</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Render Blueprint - NexGrab download server (free plan)
+services:
+  - type: web
+    name: nexgrab-api
+    runtime: docker
+    rootDir: server
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: MAX_JOBS
+        value: "2"
+      - key: MAX_FILESIZE_MB
+        value: "1000"
+      - key: ALLOWED_ORIGINS
+        value: "https://nexgrab.github.io"

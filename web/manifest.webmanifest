@@ -1,0 +1,14 @@
+{
+  "name": "NexGrab",
+  "short_name": "NexGrab",
+  "description": "Paste a link, download the video. No login, no history.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#060a13",
+  "theme_color": "#060a13",
+  "icons": [
+    { "src": "assets/logo.png", "sizes": "256x256", "type": "image/png" },
+    { "src": "assets/logo-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "share_target": { "action": "./", "method": "GET", "params": { "url": "url", "text": "text" } }
+}

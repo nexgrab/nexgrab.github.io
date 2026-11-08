@@ -1,0 +1,2 @@
+Is folder ka APK builder: MAKE_APK.cmd
+Poori guide project ke bahar wale README.txt mein hai (BUILD_ALL.bat se EXE + APK dono banti hain).

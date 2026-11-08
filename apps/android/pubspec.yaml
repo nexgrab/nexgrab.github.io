@@ -1,0 +1,24 @@
+name: rsk_downloader
+description: NexGrab - YouTube, direct link and web video downloader for Android
+publish_to: "none"
+version: 3.2.0+4
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.2.0
+  youtube_explode_dart: ^3.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/nexgrab_logo.png

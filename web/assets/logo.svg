@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101a36"/>
+      <stop offset="1" stop-color="#05070f"/>
+    </linearGradient>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="0.55" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="arrow" gradientUnits="userSpaceOnUse" x1="0" y1="290" x2="0" y2="700">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="tray" gradientUnits="userSpaceOnUse" x1="372" y1="0" x2="652" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+    <radialGradient id="glowbg" cx="0.5" cy="0.45" r="0.55">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.22"/>
+      <stop offset="0.6" stop-color="#7c3aed" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" filterUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="sq"><rect x="32" y="32" width="960" height="960" rx="230"/></clipPath>
+  </defs>
+
+  <!-- tile -->
+  <rect x="32" y="32" width="960" height="960" rx="230" fill="url(#bg)"/>
+  <g clip-path="url(#sq)">
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#glowbg)"/>
+    <!-- circuit lines -->
+    <g stroke="#22d3ee" stroke-opacity="0.13" stroke-width="6" fill="none" stroke-linecap="round">
+      <path d="M90 300 H220 L270 250 H330"/>
+      <path d="M934 724 H804 L754 774 H690"/>
+      <path d="M120 760 H210 L250 800"/>
+      <path d="M900 260 H820 L780 220"/>
+    </g>
+    <g fill="#22d3ee" fill-opacity="0.25">
+      <circle cx="330" cy="250" r="9"/><circle cx="690" cy="774" r="9"/>
+      <circle cx="250" cy="800" r="9"/><circle cx="780" cy="220" r="9"/>
+    </g>
+  </g>
+  <!-- tile border -->
+  <rect x="40" y="40" width="944" height="944" rx="222" fill="none" stroke="url(#neon)" stroke-width="10" stroke-opacity="0.85"/>
+
+  <!-- hexagon ring -->
+  <g filter="url(#glow)">
+    <polygon points="512,168 810,340 810,684 512,856 214,684 214,340"
+             fill="none" stroke="url(#neon)" stroke-width="34" stroke-linejoin="round"/>
+  </g>
+  <polygon points="512,214 770,363 770,661 512,810 254,661 254,363" fill="#0a1124" fill-opacity="0.85"/>
+
+  <!-- download arrow -->
+  <g filter="url(#soft)">
+    <rect x="466" y="296" width="92" height="330" rx="40" fill="url(#arrow)"/>
+    <path d="M360 494 L512 646 L664 494" fill="none" stroke="url(#arrow)" stroke-width="92"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- tray -->
+  <path d="M372 738 H652" stroke="url(#tray)" stroke-width="40" stroke-linecap="round" filter="url(#soft)"/>
+  <!-- spark -->
+  <circle cx="752" cy="262" r="16" fill="#e0f2fe" filter="url(#soft)"/>
+</svg>
