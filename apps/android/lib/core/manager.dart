@@ -302,8 +302,10 @@ class DownloadManager {
   /// Tests can replace the FxTwitter request.
   Future<String?> Function(String url)? xFetchOverride;
 
-  Future<String?> _getText(String url) async {
-    final c = route.client();
+  /// Small text/JSON request over the current route. Unlike media downloads, these answers come
+  /// gzip-compressed, so they must be unpacked (the route client leaves compression alone).
+  Future<String?> fetchText(String url) async {
+    final c = route.client()..autoUncompress = true;
     try {
       final req = await c.getUrl(Uri.parse(url)).timeout(const Duration(seconds: 20));
       req.headers.set(HttpHeaders.userAgentHeader, 'Mozilla/5.0 (Linux; Android 14) NexGrab/3.2');
@@ -320,7 +322,7 @@ class DownloadManager {
     final id = xStatusId(url);
     if (id == null) return null;
     try {
-      final get = xFetchOverride ?? _getText;
+      final get = xFetchOverride ?? fetchText;
       final fx = await get(fxApiUrl(id)).catchError((_) => null);
       final fromFx = fx == null ? null : infoFromFx(url, fx);
       if (fromFx != null) return fromFx;
