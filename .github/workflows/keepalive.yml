@@ -1,20 +1,22 @@
 name: Keep server awake
-# Render's free plan sleeps after 15 min without visitors (first visitor then waits ~1 min).
-# A tiny ping every 10 minutes keeps it awake. 750 free hours/month cover one service 24/7.
+# Render's free plan sleeps after 15 min without visitors (the first visitor then waits ~1 min).
+# GitHub starts scheduled runs late, so each run stays alive for ~5h45m and pings every 10 min;
+# a new run starts every 5 hours. Free for public repos. 750 free Render hours/month cover one service 24/7.
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "7 */5 * * *"
   workflow_dispatch:
 permissions: {}
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 350
     steps:
-      - name: Ping download server
+      - name: Ping download server every 10 minutes
         run: |
-          for i in 1 2 3; do
-            if curl -fsS -m 90 https://nexgrab-api.onrender.com/api/health; then echo; exit 0; fi
-            sleep 20
+          end=$(( $(date +%s) + 345*60 ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            curl -fsS -m 90 -o /dev/null -w "$(date -u +%H:%M) %{http_code} %{time_total}s\n" \
+              https://nexgrab-api.onrender.com/api/health || echo "$(date -u +%H:%M) no answer"
+            sleep 600
           done
-          echo "::warning::Server did not answer"
