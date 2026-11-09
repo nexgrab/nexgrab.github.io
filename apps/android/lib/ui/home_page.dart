@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../core/manager.dart';
 import '../core/models.dart';
 import '../core/net.dart';
+import 'settings_page.dart' show appVersion;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -263,7 +264,7 @@ class HomePageState extends State<HomePage> {
                 child: const Text('NexGrab',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: .3)),
               ),
-              const Text('Futuristic Downloader · v3.2', style: TextStyle(color: C.muted, fontSize: 12.5)),
+              const Text('Futuristic Downloader · v$appVersion', style: TextStyle(color: C.muted, fontSize: 12.5)),
             ],
           ),
         ),

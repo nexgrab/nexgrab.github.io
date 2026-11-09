@@ -5,7 +5,7 @@ import '../core/models.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-const appVersion = '3.2.2';
+const appVersion = '3.2.3';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key, required this.manager});

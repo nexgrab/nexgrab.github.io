@@ -28,7 +28,7 @@ from urllib.parse import urlparse
 import yt_dlp
 
 APP_NAME = "NexGrab"
-APP_VERSION = "3.2.2"
+APP_VERSION = "3.2.3"
 DEVELOPER = "WSNex"
 
 IS_WIN = sys.platform.startswith("win")
@@ -681,10 +681,15 @@ def x_lookup(url: str, proxy: str = "") -> dict | None:
     if not m:
         return None
     tid = m.group(1)
+    def get(u):
+        try:
+            return fetch_bytes(u, proxy)
+        except Exception:
+            return b""
     try:
-        data = json.loads(fetch_bytes(f"https://api.fxtwitter.com/status/{tid}", proxy).decode("utf-8", "replace"))
+        data = json.loads(get(f"https://api.fxtwitter.com/status/{tid}").decode("utf-8", "replace") or "{}")
     except Exception:
-        return None
+        data = {}
     tw = data.get("tweet") or {}
     vids = []
     for v in (tw.get("media") or {}).get("videos") or []:
@@ -693,12 +698,30 @@ def x_lookup(url: str, proxy: str = "") -> dict | None:
         if best:
             vids.append({"url": best, "w": v.get("width") or 0, "h": v.get("height") or 0,
                          "duration": v.get("duration") or 0, "thumb": v.get("thumbnail_url") or ""})
+    text = tw.get("text") or ""
+    author = (tw.get("author") or {}).get("screen_name") or ""
+    if not vids:  # backup service
+        vids, text, author = _vx_videos(get(f"https://api.vxtwitter.com/Twitter/status/{tid}"))
     if not vids:
         return None
-    text = re.sub(r"\s+", " ", tw.get("text") or "").strip()
-    author = (tw.get("author") or {}).get("screen_name") or ""
+    text = re.sub(r"\s+", " ", text).strip()
     return {"id": tid, "title": text[:90] or f"X video {tid}", "uploader": f"@{author}" if author else "",
             "videos": vids}
+
+
+def _vx_videos(raw: bytes) -> tuple[list, str, str]:
+    """api.vxtwitter.com answer -> (videos, text, author) in the same shape as the FxTwitter parser."""
+    try:
+        j = json.loads(raw.decode("utf-8", "replace"))
+    except Exception:
+        return [], "", ""
+    vids = []
+    for m in j.get("media_extended") or []:
+        if m.get("type") in ("video", "gif") and m.get("url"):
+            size = m.get("size") or {}
+            vids.append({"url": m["url"], "w": size.get("width") or 0, "h": size.get("height") or 0,
+                         "duration": (m.get("duration_millis") or 0) / 1000, "thumb": m.get("thumbnail_url") or ""})
+    return vids, j.get("text") or "", j.get("user_screen_name") or ""
 
 
 def _x_media(url: str, x: dict, proxy: str, has_ffmpeg: bool, warns: list) -> "MediaInfo":

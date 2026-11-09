@@ -311,6 +311,10 @@ String ytdlpError(String err) {
       m.contains('use --cookies')) {
     return 'Is site ne login maanga. Settings → Cookies file (cookies.txt) set karke dobara try karein.\n\n$main';
   }
+  if (m.contains('[twitter]') && (m.contains('no video') || m.contains('nsfw') || m.contains('sensitive'))) {
+    return 'X ne is post ki video nahi di, aur FxTwitter / VxTwitter se bhi nahi mili. Ya to post mein sirf photo / '
+        'text hai, ya X ne ise poori tarah band kar rakha hai. Settings → Cookies mein apni X ki cookies.txt daal kar try karein.';
+  }
   if (m.contains('no video could be found') || m.contains('there is no video in this post') ||
       m.contains('no video formats found')) {
     return 'Is post mein video nahi mili (sirf photo / text ho sakti hai). Video wali post ka link dein.';
@@ -342,6 +346,45 @@ final RegExp xStatusRe = RegExp(
 String? xStatusId(String url) => xStatusRe.firstMatch(url)?.group(1);
 
 String fxApiUrl(String id) => 'https://api.fxtwitter.com/status/$id';
+
+/// Backup service when FxTwitter has nothing.
+String vxApiUrl(String id) => 'https://api.vxtwitter.com/Twitter/status/$id';
+
+/// Builds the media card from an api.vxtwitter.com answer, or null when it has no video.
+MediaInfo? infoFromVx(String url, String body) {
+  Map<String, dynamic> j;
+  try {
+    j = (jsonDecode(body) as Map).cast<String, dynamic>();
+  } catch (_) {
+    return null;
+  }
+  final media = ((j['media_extended'] as List?) ?? const []).whereType<Map>()
+      .where((m) => (m['type'] == 'video' || m['type'] == 'gif') && m['url'] is String).toList();
+  if (media.isEmpty) return null;
+  final m = media.first;
+  final size = (m['size'] as Map?) ?? const {};
+  // re-use the FxTwitter builder with the same field names
+  return infoFromFx(url, jsonEncode({
+    'tweet': {
+      'text': j['text'] ?? '',
+      'author': {'screen_name': j['user_screen_name'] ?? ''},
+      'media': {
+        'videos': [
+          {
+            'url': m['url'],
+            'thumbnail_url': m['thumbnail_url'],
+            'width': size['width'] ?? 0,
+            'height': size['height'] ?? 0,
+            'duration': ((m['duration_millis'] ?? 0) as num) / 1000,
+            'variants': [
+              {'bitrate': 1, 'content_type': 'video/mp4', 'url': m['url']}
+            ],
+          }
+        ]
+      }
+    }
+  }));
+}
 
 /// File-name safe text (also safe inside a yt-dlp output template).
 String safeFileName(String s) {

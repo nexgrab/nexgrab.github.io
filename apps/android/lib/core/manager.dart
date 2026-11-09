@@ -306,7 +306,7 @@ class DownloadManager {
     final c = route.client();
     try {
       final req = await c.getUrl(Uri.parse(url)).timeout(const Duration(seconds: 20));
-      req.headers.set(HttpHeaders.userAgentHeader, 'NexGrab/3.2');
+      req.headers.set(HttpHeaders.userAgentHeader, 'Mozilla/5.0 (Linux; Android 14) NexGrab/3.2');
       final res = await req.close().timeout(const Duration(seconds: 20));
       if (res.statusCode != 200) return null;
       return await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 20));
@@ -320,8 +320,12 @@ class DownloadManager {
     final id = xStatusId(url);
     if (id == null) return null;
     try {
-      final body = await (xFetchOverride ?? _getText)(fxApiUrl(id));
-      return body == null ? null : infoFromFx(url, body);
+      final get = xFetchOverride ?? _getText;
+      final fx = await get(fxApiUrl(id)).catchError((_) => null);
+      final fromFx = fx == null ? null : infoFromFx(url, fx);
+      if (fromFx != null) return fromFx;
+      final vx = await get(vxApiUrl(id)).catchError((_) => null);
+      return vx == null ? null : infoFromVx(url, vx);
     } catch (_) {
       return null;
     }

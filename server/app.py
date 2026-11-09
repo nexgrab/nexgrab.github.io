@@ -33,7 +33,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-APP_VERSION = "3.2"
+APP_VERSION = "3.2.3"
 WORK = Path(os.environ.get("WORK_DIR") or tempfile.gettempdir()) / "nexgrab"
 MAX_JOBS = int(os.environ.get("MAX_JOBS", "2"))            # parallel downloads on the server
 MAX_PER_IP = int(os.environ.get("MAX_PER_IP", "1"))        # active jobs per visitor
@@ -109,8 +109,8 @@ def friendly(err: Exception | str) -> str:
         return ("Ye post 'sensitive / 18+' hai - website ise login ke baghair nahi dekh sakti. "
                 "NexGrab app mein apni cookies.txt daal kar try karein.")
     if "[twitter]" in l and ("no video" in l or "no media" in l):
-        return ("X ne is post ki video nahi di. Ya to post mein sirf photo / text hai, ya X ne ise 'Sensitive content' "
-                "bana kar sirf login walon ke liye rakha hai (tab website se nahi milegi - NexGrab app + cookies use karein).")
+        return ("X ne is post ki video nahi di, aur FxTwitter / VxTwitter se bhi nahi mili. Ya to post mein sirf photo / "
+                "text hai, ya X ne ise poori tarah band kar rakha hai (NexGrab app + apni X cookies se try karein).")
     if "no video" in l or "no media" in l or "there is no video" in l:
         return "Is link mein video nahi mili (sirf photo / text ho sakti hai)."
     if "file is larger than" in l or "max_filesize" in l:
@@ -134,12 +134,17 @@ def x_lookup(url: str) -> dict | None:
     if not m:
         return None
     tid = m.group(1)
+    def get(u):
+        try:
+            req = UrlRequest(u, headers={"User-Agent": f"Mozilla/5.0 NexGrab/{APP_VERSION}"})
+            with urlopen(req, timeout=20) as r:
+                return r.read()
+        except Exception:  # noqa: BLE001
+            return b""
     try:
-        req = UrlRequest(f"https://api.fxtwitter.com/status/{tid}", headers={"User-Agent": f"NexGrab/{APP_VERSION}"})
-        with urlopen(req, timeout=20) as r:
-            data = json.loads(r.read().decode("utf-8", "replace"))
+        data = json.loads(get(f"https://api.fxtwitter.com/status/{tid}").decode("utf-8", "replace") or "{}")
     except Exception:  # noqa: BLE001
-        return None
+        data = {}
     tw = data.get("tweet") or {}
     vids = []
     for v in (tw.get("media") or {}).get("videos") or []:
@@ -148,11 +153,29 @@ def x_lookup(url: str) -> dict | None:
         if best:
             vids.append({"url": best, "w": v.get("width") or 0, "h": v.get("height") or 0,
                          "duration": v.get("duration") or 0, "thumb": v.get("thumbnail_url") or ""})
+    text = tw.get("text") or ""
+    author = (tw.get("author") or {}).get("screen_name") or ""
+    if not vids:  # backup service
+        vids, text, author = _vx_videos(get(f"https://api.vxtwitter.com/Twitter/status/{tid}"))
     if not vids:
         return None
-    text = re.sub(r"\s+", " ", tw.get("text") or "").strip()
-    author = (tw.get("author") or {}).get("screen_name") or ""
+    text = re.sub(r"\s+", " ", text).strip()
     return {"id": tid, "title": (text[:90] or f"X video {tid}"), "uploader": f"@{author}" if author else "", "videos": vids}
+
+
+def _vx_videos(raw: bytes) -> tuple[list, str, str]:
+    """api.vxtwitter.com answer -> (videos, text, author) in the same shape as the FxTwitter parser."""
+    try:
+        j = json.loads(raw.decode("utf-8", "replace"))
+    except Exception:  # noqa: BLE001
+        return [], "", ""
+    vids = []
+    for m in j.get("media_extended") or []:
+        if m.get("type") in ("video", "gif") and m.get("url"):
+            size = m.get("size") or {}
+            vids.append({"url": m["url"], "w": size.get("width") or 0, "h": size.get("height") or 0,
+                         "duration": (m.get("duration_millis") or 0) / 1000, "thumb": m.get("thumbnail_url") or ""})
+    return vids, j.get("text") or "", j.get("user_screen_name") or ""
 
 
 def x_options(x: dict) -> list[dict]:
