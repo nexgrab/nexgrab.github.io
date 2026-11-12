@@ -1,0 +1,11 @@
+{
+  "plans": [
+    {"id": "lifetime", "name": "Lifetime", "pkr": 5000, "note": "Ek dafa pay karein, hamesha ke liye", "best": true},
+    {"id": "month", "name": "1 Mahina", "pkr": 300, "note": "30 din, phir dobara le sakte hain"}
+  ],
+  "payments": [],
+  "whatsapp": "",
+  "gumroad_product_id": "",
+  "gumroad_url": "",
+  "revoked": []
+}

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>NexGrab - Paste link, download video</title>
-  <meta name="description" content="NexGrab: free video & audio downloader. YouTube, Instagram, Facebook, TikTok, X and 1000+ sites. No login, no history - just paste and download. Android and Windows apps too.">
+  <meta name="description" content="NexGrab: free video & audio downloader. YouTube, Instagram, Facebook, TikTok, X and 1000+ sites. No login, no history - just paste and download. Android and Windows apps (7-day free trial).">
   <meta name="theme-color" content="#060a13">
   <meta property="og:title" content="NexGrab - Paste. Grab. Done.">
   <meta property="og:description" content="Free video & audio downloader for 1000+ sites. No login, no history.">
@@ -28,6 +28,7 @@
     </a>
     <nav>
       <a href="#apps">Apps</a>
+      <a href="#pro">Pro</a>
       <a href="#how">Kaise?</a>
       <a href="#faq">FAQ</a>
     </nav>
@@ -97,7 +98,7 @@
     <!-- ======================= APPS ======================= -->
     <section class="apps" id="apps">
       <h2 class="sec">Apps bhi hain - <span class="grad">aur bhi taqatwar</span></h2>
-      <p class="sec-sub">App aap ke apne internet se chalti hai: YouTube zyada reliable, bari files, poori playlists, Tor support, pause / resume.</p>
+      <p class="sec-sub">App aap ke apne internet se chalti hai: YouTube zyada reliable, bari files, poori playlists, Tor support, pause / resume. <b>7 din bilkul free</b>, phir <a href="#pro">Pro key</a>.</p>
       <div class="app-grid">
         <a class="app" id="dlAndroid" href="#" rel="noopener">
           <div class="app-ico android"><svg viewBox="0 0 24 24"><path d="M7 9h10v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2zM7 8a5 5 0 0 1 10 0zM9.5 5.5 8 3.5M14.5 5.5 16 3.5M4.5 10v5M19.5 10v5"/></svg></div>
@@ -151,6 +152,30 @@
       </div>
     </section>
 
+    <!-- ======================= PRO ======================= -->
+    <section class="pro" id="pro">
+      <h2 class="sec">NexGrab <span class="grad">Pro</span></h2>
+      <p class="sec-sub">Android + Windows apps aur browser extension. 7 din free trial, phir ek key se hamesha ke liye unlock. Website hamesha free hai.</p>
+      <div class="plans" id="plans"></div>
+
+      <div class="buy">
+        <h3>Kaise khareedein (JazzCash / Easypaisa)</h3>
+        <ol class="buy-steps">
+          <li>Plan ki raqam neeche diye gaye account mein bhejein.<div class="pay" id="payList"><span class="muted">Payment details jald...</span></div></li>
+          <li>WhatsApp par <b>payment ka screenshot</b>, apna <b>naam</b> aur <b>plan</b> bhejein.</li>
+          <li>Thori der mein aap ko <b>NXG1-...</b> key WhatsApp par milegi. App mein <b>Settings &rarr; Key daalein</b> par paste karein. Bas!</li>
+        </ol>
+        <div class="buy-actions">
+          <a class="btn-wa" id="waBtn" href="#" target="_blank" rel="noopener" hidden>
+            <svg viewBox="0 0 24 24"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 1c-1-.5-1.5-1-2-2l1-1-1-2z"/></svg>
+            WhatsApp par bhejein
+          </a>
+          <a class="btn-card" id="cardBtn" href="#" target="_blank" rel="noopener" hidden>Card se khareedein (international)</a>
+        </div>
+        <p class="muted small">Ek key = ek shakhs. Key share karne par band ho sakti hai. Card wali key email par aati hai aur 3 devices tak chalti hai.</p>
+      </div>
+    </section>
+
     <!-- ======================= HOW ======================= -->
     <section class="how" id="how">
       <h2 class="sec">Kaise kaam karta hai</h2>
@@ -170,7 +195,8 @@
       <details><summary>YouTube par "bot" wala error aaya?</summary><p>YouTube kabhi kabhi servers ko rok deta hai. Thori der baad try karein - ya NexGrab Android / Windows app use karein, woh aap ke apne internet se chalti hai aur aisa kam hota hai.</p></details>
       <details><summary>APK install kaise karein?</summary><p>APK download karein → kholein → "Install unknown apps" ki ijazat dein (sirf browser ke liye) → Install. Purani RSK Downloader app ke upar bhi update ho jati hai.</p></details>
       <details><summary>Windows "unknown publisher" kehta hai?</summary><p>App signed nahi hai is liye. <em>More info → Run anyway</em> dabayein. Zip extract karke <em>NexGrab.exe</em> chalayein (tools folder saath rakhein).</p></details>
-      <details><summary>Kya ye free hai?</summary><p>Haan, poori tarah free.</p></details>
+      <details><summary>Kya ye free hai?</summary><p>Website hamesha free hai. Android / Windows apps aur browser extension 7 din free chalte hain, uske baad <a href="#pro">NexGrab Pro</a> key chahiye (Rs 300 mahina ya Rs 5,000 lifetime).</p></details>
+      <details><summary>Pro key kaise milti hai?</summary><p>JazzCash / Easypaisa se payment karke WhatsApp par screenshot bhejein, key WhatsApp par aa jati hai. App mein Settings &rarr; Key daalein par paste karein.</p></details>
     </section>
   </main>
 
@@ -182,5 +208,6 @@
 
   <script src="config.js"></script>
   <script src="app.js"></script>
+  <script src="pro.js"></script>
 </body>
 </html>
