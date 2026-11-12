@@ -184,6 +184,16 @@ section { scroll-margin-top: 20px; }
 .go { flex: none; padding: 8px 12px; border-radius: 10px; font-weight: 700; font-size: 13px; background: rgba(34, 211, 238, .12); color: var(--cyan); }
 .app.disabled { pointer-events: none; opacity: .5; }
 
+.ext { margin-top: 22px; padding: 20px 22px; border-radius: var(--r); background: var(--card); border: 1px solid rgba(34, 211, 238, .35); }
+.ext-head { display: flex; gap: 14px; align-items: flex-start; }
+.ext-head h3 { margin: 2px 0 4px; font: 700 19px "Space Grotesk", sans-serif; }
+.ext-head p { margin: 0; }
+.app-ico.ext-ico { background: var(--grad); }
+.ext-steps { margin: 14px 0 10px; padding-left: 22px; display: grid; gap: 6px; }
+.ext-steps a { color: var(--cyan); }
+.ext code { padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, .07); font-size: .92em; }
+.ext a.disabled { pointer-events: none; opacity: .5; }
+
 .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 26px; }
 .compare > div { padding: 18px 20px; border-radius: var(--r); background: rgba(255, 255, 255, .025); border: 1px solid var(--line); }
 .compare .hl { border-color: rgba(168, 85, 247, .45); background: rgba(168, 85, 247, .06); }

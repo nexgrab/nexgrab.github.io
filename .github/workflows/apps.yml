@@ -92,11 +92,14 @@ jobs:
           $zip = Get-ChildItem apps/pc/release/*_Windows.zip | Select-Object -First 1
           if (-not $zip) { Compress-Archive -Force -Path "apps/pc/release/NexGrab" -DestinationPath out/NexGrab_Windows.zip }
           else { Copy-Item $zip.FullName out/NexGrab_Windows.zip }
+          Compress-Archive -Force -Path "apps/extension/*" -DestinationPath out/NexGrab_Extension.zip
           Get-ChildItem out
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: out/NexGrab_Windows.zip
+          path: |
+            out/NexGrab_Windows.zip
+            out/NexGrab_Extension.zip
 
   release:
     needs: [meta, android, windows]
@@ -121,5 +124,6 @@ jobs:
             |---|---|
             | `NexGrab.apk` | Android (all modern phones) |
             | `NexGrab_32bit.apk` | very old 32-bit Android phones |
-            | `NexGrab_Windows.zip` | Windows 10/11 - extract, run `NexGrab.exe` (keep the `tools` folder) |
+            | `NexGrab_Windows.zip` | Windows 10/11 - extract, run `NexGrab.exe` (keep the `tools` and `extension` folders) |
+            | `NexGrab_Extension.zip` | Chrome / Edge / Brave button on every video (already inside the Windows zip too) |
           files: dist/*

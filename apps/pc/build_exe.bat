@@ -7,7 +7,7 @@ set "NAME=NexGrab"
 set "OUT=%CD%\release\%NAME%"
 
 echo ==========================================================
-echo   NEXGRAB v3.2  -  Windows EXE builder
+echo   NEXGRAB v3.3  -  Windows EXE builder
 echo ==========================================================
 echo.
 
@@ -87,7 +87,8 @@ mkdir "%OUT%\tools" 2>nul
 copy /Y "dist\%NAME%.exe" "%OUT%\" >nul
 if errorlevel 1 goto :fail
 "%VPY%" collect_tools.py "%OUT%\tools"
-powershell -NoProfile -Command "Compress-Archive -Force -Path '%OUT%' -DestinationPath '%CD%\release\NexGrab_v3.2_Windows.zip'" >nul 2>nul
+if exist "..\extension\manifest.json" xcopy /E /I /Y /Q "..\extension" "%OUT%\extension" >nul
+powershell -NoProfile -Command "Compress-Archive -Force -Path '%OUT%' -DestinationPath '%CD%\release\NexGrab_Windows.zip'" >nul 2>nul
 
 echo.
 echo ==========================================================
@@ -95,7 +96,7 @@ echo   EXE READY
 echo ==========================================================
 echo   %OUT%\%NAME%.exe
 echo   (tools folder EXE ke saath hi rakhein)
-echo   Share karne ke liye: release\NexGrab_v3.2_Windows.zip
+echo   Share karne ke liye: release\NexGrab_Windows.zip
 echo.
 if /i not "%NOPAUSE%"=="nopause" (
     start "" "%OUT%"

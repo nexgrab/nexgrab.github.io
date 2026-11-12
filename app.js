@@ -243,7 +243,7 @@
 
   // ------------------------------------------------------------------ app downloads (GitHub Releases)
   const base = REPO ? `https://github.com/${REPO}/releases/latest/download/` : "";
-  const links = { dlAndroid: "NexGrab.apk", dlAndroid32: "NexGrab_32bit.apk", dlWindows: "NexGrab_Windows.zip" };
+  const links = { dlAndroid: "NexGrab.apk", dlAndroid32: "NexGrab_32bit.apk", dlWindows: "NexGrab_Windows.zip", dlExtension: "NexGrab_Extension.zip" };
   Object.entries(links).forEach(([id, file]) => { const a = $(id); if (base) a.href = base + file; else a.classList.add("disabled"); });
   if (REPO) {
     fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } })

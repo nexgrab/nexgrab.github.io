@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "NexGrab - Video Downloader",
+  "short_name": "NexGrab",
+  "version": "3.3.0",
+  "description": "Har video par NexGrab button: ek click mein video NexGrab PC app mein download. YouTube, Instagram, Facebook, TikTok, X + 1000 sites.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqqT3VEoBNd5NM7hwq/YD7E3VFsL07/z5LvrkyELIuXFLTDRyFbS/Pic0sc0cLPnKMSQI7wHeLeNap1Guf/srJPSRN0Bso7tlVYBrU3ki1kkZeMzjYri6V14UYJOp8SFp34PWPlu1x99IiVkplajo6EXGjiOtQV/G0YUMTjB2zeuZii/ZOz4f30q3MRoWXdoISn74D4SDogE5D7opKmPmUv7hxbEpTlhLt9CgCkPMKXLMj+6sgmWwWnRVYHbda8B3qdAmxeSbytm28SU+KZR6gYD1Q7KghZ2wGoh9K7ZZ/ZgJxMjVKXprHUDGJhcIsCDlyVeA0igTd63wquMjaRNhcQIDAQAB",
+  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "action": { "default_title": "NexGrab", "default_popup": "popup.html", "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png" } },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["contextMenus", "storage", "activeTab"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "content_scripts": [
+    { "matches": ["http://*/*", "https://*/*"], "js": ["content.js"], "run_at": "document_idle", "all_frames": true }
+  ]
+}

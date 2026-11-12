@@ -1,4 +1,4 @@
-"""NexGrab v3.2 - Windows desktop app (customtkinter + yt-dlp).
+"""NexGrab v3.3 - Windows desktop app (customtkinter + yt-dlp).
 
 GUI only. All downloading / networking lives in rsk_core.py. Worker threads never
 touch widgets: they post events to Manager.events and this file drains the queue
@@ -24,6 +24,7 @@ except ImportError:  # pragma: no cover
 
 from PIL import Image
 
+import rsk_bridge as bridge
 import rsk_core as core
 
 # ----------------------------------------------------------------------------- look & feel
@@ -254,11 +255,47 @@ class App:
         self.subs_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="Ready")
 
+        self._pending_mode = None  # "best" / "mp3" when a browser request wants an instant download
+        self.bridge = None
         self._build_shell()
         self.show("home")
         self._startup_hint()
         root.protocol("WM_DELETE_WINDOW", self._on_close)
         self.root.after(100, self._drain)
+        self._start_bridge()
+
+    # ------------------------------------------------------------------ browser extension (IDM-style)
+
+    def _start_bridge(self):
+        try:
+            self.bridge = bridge.Bridge(lambda req: self._ui_events.put(("grab", True, req)), core.APP_VERSION).start()
+        except OSError:
+            self.bridge = None  # port busy (another NexGrab is open)
+        bridge.register_protocol()
+
+    def handle_browser_request(self, req: dict):
+        self._ui_events.put(("grab", True, req))
+
+    def _bring_to_front(self):
+        try:
+            self.root.deiconify()
+            self.root.lift()
+            self.root.attributes("-topmost", True)
+            self.root.after(400, lambda: self.root.attributes("-topmost", False))
+            self.root.focus_force()
+        except Exception:
+            pass
+
+    def _on_grab(self, ok, req):
+        if not ok or not req:
+            return
+        self._bring_to_front()
+        self.show("home")
+        self.url_var.set(req["url"])
+        self.playlist_var.set(False)
+        self._pending_mode = req["mode"] if req["mode"] in ("best", "mp3") else None
+        self.toast("Browser se link aaya", CYAN)
+        self.analyze()
 
     # ------------------------------------------------------------------ helpers
 
@@ -624,6 +661,7 @@ class App:
         self.analyze_bar.stop()
         self.analyze_bar.grid_remove()
         if not ok:
+            self._pending_mode = None
             self.toast("Analyze failed", BAD)
             msg = core.friendly_error(res)
             if core.is_network_error(str(res)) and not self.m.net.is_tor():
@@ -665,6 +703,16 @@ class App:
         self.result.grid(row=1, column=0, sticky="ew", padx=8, pady=8)
         self.tips.grid_remove()
         self.toast("Ready to download", OK)
+        mode, self._pending_mode = self._pending_mode, None
+        if mode:
+            pick = None
+            if mode == "mp3":
+                pick = next((c for c in info.choices if c.kind == "mp3"), None) or \
+                    next((c for c in info.choices if c.kind == "m4a"), None)
+            pick = pick or info.choices[0]
+            self.quality_var.set(pick.label)
+            self.root.after(50, self.download)
+            return
         if info.thumbnail:
             self.run_bg("thumb", lambda: (req, core.fetch_bytes(info.thumbnail, info.proxy_used)))
 
@@ -1050,13 +1098,41 @@ class App:
         self.tools_btn = button(tc, "Install missing tools", self._install_tools, "accent", width=200)
         self.tools_btn.grid(row=3, column=0, sticky="w", padx=20, pady=(8, 16))
 
+        ec = card(p)
+        ec.grid(row=2, column=0, sticky="ew", padx=8, pady=8)
+        ec.grid_columnconfigure(0, weight=1)
+        label(ec, "Browser extension (IDM jaisa)", 16, "bold").grid(row=0, column=0, sticky="w", padx=20, pady=(16, 2))
+        on = self.bridge is not None
+        label(ec, ("● Browser se link lene ke liye tayyar" if on else "● Bridge band hai (shayad NexGrab pehle se khula hai)"),
+              13, "bold", OK if on else WARN).grid(row=1, column=0, sticky="w", padx=20)
+        label(ec, "Extension lagane ke baad har video par 'NexGrab' button aayega, aur right-click menu mein bhi. "
+                  "Click karte hi video is app mein khulegi.\n"
+                  "Lagane ka tareeqa: 1) neeche button dabayein  2) browser ke Extensions page par 'Developer mode' on karein  "
+                  "3) 'Load unpacked' dabayein aur jo folder khula hai woh select karein.",
+              12, color=MUTED, wraplength=760, justify="left").grid(row=2, column=0, sticky="w", padx=20, pady=(4, 8))
+        button(ec, "Extension install karein", self._install_extension, "accent", width=220).grid(
+            row=3, column=0, sticky="w", padx=20, pady=(0, 16))
+
         ac = card(p)
-        ac.grid(row=2, column=0, sticky="ew", padx=8, pady=8)
+        ac.grid(row=3, column=0, sticky="ew", padx=8, pady=8)
         label(ac, core.APP_NAME, 16, "bold").pack(anchor="w", padx=20, pady=(16, 2))
         label(ac, f"Version {core.APP_VERSION}   •   Developer: {core.DEVELOPER}", 13, color=MUTED).pack(anchor="w", padx=20)
         label(ac, f"Data folder: {core.DATA_DIR}", 12, color=MUTED).pack(anchor="w", padx=20, pady=(2, 4))
         label(ac, "Sirf woh content download karein jis ka aap ko haq / ijazat ho.", 12, color=MUTED).pack(
             anchor="w", padx=20, pady=(0, 16))
+
+    def _install_extension(self):
+        folder = bridge.extension_folder()
+        if not folder:
+            messagebox.showerror("Extension", "Extension folder nahi mila. NexGrab zip dobara extract karein "
+                                              "(EXE ke saath 'extension' folder hona chahiye).")
+            return
+        self.safe(bridge.open_extension_setup, core.find_chrome())
+        messagebox.showinfo("Extension", "Browser ka Extensions page aur extension folder khul gaye hain.\n\n"
+                                         "1) Upar right par 'Developer mode' on karein\n"
+                                         "2) 'Load unpacked' dabayein\n"
+                                         f"3) Yeh folder select karein:\n{folder}\n\n"
+                                         "Folder ko delete ya move na karein, warna extension band ho jayegi.")
 
     def _set_theme(self, v):
         self.m.settings["theme"] = v
@@ -1107,6 +1183,8 @@ class App:
             return
         self.m.settings["output_dir"] = self.outdir_var.get().strip() or self.m.settings["output_dir"]
         self.m.shutdown()
+        if self.bridge:
+            self.bridge.stop()
         self.root.destroy()
 
 
@@ -1118,8 +1196,14 @@ def main():
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("WSNex.NexGrab")
         except Exception:
             pass
+    link = next((a for a in sys.argv[1:] if a.lower().startswith("nexgrab:")), None)
+    req = bridge.parse_protocol(link) if link else None
+    if req and bridge.forward_to_running(req):
+        return  # NexGrab is already open - it got the link
     root = ctk.CTk()
     app = App(root)
+    if req:
+        root.after(600, lambda: app.handle_browser_request(req))
     if "--page" in sys.argv:  # e.g. "--page settings" (handy for shortcuts)
         try:
             app.show(sys.argv[sys.argv.index("--page") + 1])
