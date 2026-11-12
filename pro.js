@@ -30,7 +30,7 @@
       }
       const wa = String(cfg.whatsapp || "").replace(/\D/g, "").replace(/^0/, "92");
       if (wa) {
-        const text = "Assalam o Alaikum! Mujhe NexGrab Pro chahiye.\nPlan: \nNaam: \n(Payment screenshot saath hai)";
+        const text = "Assalam o Alaikum! Mujhe NexGrab Pro chahiye.\nPlan: \nNaam: \nDevice code(s): \n(Payment screenshot saath hai)";
         $("waBtn").href = `https://wa.me/${wa}?text=${encodeURIComponent(text)}`;
         $("waBtn").hidden = false;
       }
