@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>NexGrab Testing</title>
+  <link rel="icon" href="assets/logo.png">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .tb { max-width: 620px; margin: 60px auto; padding: 0 16px; }
+    .tb .card { padding: 24px; border-radius: 18px; background: var(--card); border: 1px solid rgba(245, 158, 11, .45); }
+    .tb h1 { font: 700 28px "Space Grotesk", sans-serif; margin: 0 0 6px; }
+    .tb .warn { color: #f59e0b; font-weight: 700; margin: 0 0 14px; }
+    .tb .btn { display: inline-flex; padding: 13px 18px; border-radius: 12px; font-weight: 700; background: var(--grad); color: #04121a; margin: 6px 8px 0 0; }
+    .tb .alt { background: transparent; border: 1px solid var(--line); color: var(--text); }
+    .tb ol { padding-left: 20px; display: grid; gap: 6px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="tb">
+    <div class="card">
+      <h1>NexGrab <span class="grad">Testing</span></h1>
+      <p class="warn">Sirf testing ke liye - ye public release nahi hai.</p>
+      <p class="muted" id="info">Test APK (Android)</p>
+      <a class="btn" href="https://github.com/nexgrab/nexgrab.github.io/releases/download/testing/NexGrab_testing.apk">Testing APK download</a>
+      <a class="btn alt" href="https://github.com/nexgrab/nexgrab.github.io/releases/download/testing/NexGrab_testing_32bit.apk">Purane 32-bit phone ke liye</a>
+      <ol>
+        <li>Phone par purani NexGrab pehle uninstall karein (signing key alag hai).</li>
+        <li>APK download karke install karein ("Unknown apps" ki ijazat maange to dein).</li>
+        <li>Masla aaye to screenshot bhejein.</li>
+      </ol>
+    </div>
+  </main>
+  <script>
+    fetch("https://api.github.com/repos/nexgrab/nexgrab.github.io/releases/tags/testing")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((r) => { document.getElementById("info").textContent = "Test build: " + new Date(r.published_at || r.created_at).toLocaleString(); })
+      .catch(() => { document.getElementById("info").textContent = "Test APK ban rahi hai - 15 minute baad page refresh karein."; });
+  </script>
+</body>
+</html>
