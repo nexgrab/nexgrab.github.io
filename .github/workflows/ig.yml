@@ -1,0 +1,26 @@
+name: IG probe
+on:
+  push:
+    branches: [ig-test]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: pip install -q -U "yt-dlp[default,curl-cffi]"
+      - name: yt-dlp
+        run: yt-dlp -v -s --print "%(title)s | %(formats.-1.url)s" "https://www.instagram.com/reel/De5uShMNU9G/" 2>&1 | tail -25 || true
+      - name: embed page
+        run: |
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+          curl -sL -A "$UA" "https://www.instagram.com/reel/De5uShMNU9G/embed/captioned/" -o embed.html; wc -c embed.html
+          grep -o 'video_url[^,]\{0,200\}' embed.html | head -3 || true
+          grep -o '\.mp4[^"]\{0,80\}' embed.html | head -3 || true
+      - name: mirrors
+        run: |
+          for h in www.kkinstagram.com d.ddinstagram.com www.instagramez.com www.uuinstagram.com; do
+            echo "== $h"; curl -s -m 25 -A "TelegramBot (like TwitterBot)" -o /dev/null -w "%{http_code} %{redirect_url}\n" "https://$h/reel/De5uShMNU9G/" || true
+            curl -s -m 25 -A "TelegramBot (like TwitterBot)" "https://$h/reel/De5uShMNU9G/" | grep -o 'og:video[^>]\{0,300\}' | head -2 || true
+          done
+      - name: graphql (web)
+        run: |
+          curl -s -m 25 "https://www.instagram.com/api/v1/media/shortcode_info/?shortcode=De5uShMNU9G" -H "x-ig-app-id: 936619743392459" -A "Mozilla/5.0" | head -c 300; echo
