@@ -33,7 +33,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-APP_VERSION = "3.2.3"
+APP_VERSION = "3.3.0"
 WORK = Path(os.environ.get("WORK_DIR") or tempfile.gettempdir()) / "nexgrab"
 MAX_JOBS = int(os.environ.get("MAX_JOBS", "2"))            # parallel downloads on the server
 MAX_PER_IP = int(os.environ.get("MAX_PER_IP", "1"))        # active jobs per visitor
@@ -406,6 +406,70 @@ def info(body: InfoIn):
         "thumbnail": thumb if thumb.startswith("https://") else "",
         "options": build_options(data),
     }
+
+
+# ----------------------------------------------------------------------------- direct links for the apps
+# Restricted (18+ / "not available to everyone") Instagram / Facebook posts need a logged-in account.
+# The NexGrab apps ask here; the server looks the post up with NexGrab's own account (COOKIES_FILE)
+# and returns the CDN file links. The phone / PC then downloads from the CDN itself (no server bandwidth).
+DIRECT_HOSTS = ("instagram.com", "facebook.com", "fb.watch", "threads.net", "threads.com")
+DIRECT_LIMIT = int(os.environ.get("DIRECT_PER_10MIN", "30"))
+_direct_hits: dict[str, list[float]] = {}
+_direct_lock = threading.Lock()
+
+
+def _direct_allowed(ip: str) -> bool:
+    now = time.time()
+    with _direct_lock:
+        hits = [t for t in _direct_hits.get(ip, []) if now - t < 600]
+        if len(hits) >= DIRECT_LIMIT:
+            _direct_hits[ip] = hits
+            return False
+        hits.append(now)
+        _direct_hits[ip] = hits
+        if len(_direct_hits) > 5000:
+            _direct_hits.clear()
+        return True
+
+
+@app.post("/api/direct")
+def direct(body: InfoIn, req: Request):
+    if req.headers.get("x-nexgrab-app") != "1":
+        raise UserError("Sirf NexGrab app ke liye.")
+    url = check_url(body.url)
+    host = (urlparse(url).hostname or "").lower()
+    if not any(host == h or host.endswith("." + h) for h in DIRECT_HOSTS):
+        raise UserError("Ye link yahan supported nahi.")
+    if not (COOKIES and Path(COOKIES).exists()):
+        raise UserError("NexGrab server par abhi login set nahi.")
+    if not _direct_allowed(client_ip(req)):
+        raise UserError("Bohat zyada requests. 10 minute baad try karein.")
+    try:
+        with yt_dlp.YoutubeDL(base_opts() | {"skip_download": True}) as ydl:
+            data = ydl.extract_info(url, download=False)
+    except Exception as e:  # noqa: BLE001
+        raise UserError(friendly(e)) from None
+    if data and data.get("_type") == "playlist" and data.get("entries"):
+        data = next((e for e in data["entries"] if e), None)
+    if not data:
+        raise UserError("Is link se kuch nahi mila.")
+    files = []
+    for f in data.get("formats") or [{"url": data.get("url"), "ext": data.get("ext"),
+                                      "vcodec": data.get("vcodec"), "acodec": data.get("acodec")}]:
+        u = f.get("url") or ""
+        if not u.startswith("https://") or (f.get("protocol") or "https").startswith(("m3u8", "http_dash")):
+            continue
+        v = f.get("vcodec") not in (None, "none") or (f.get("vcodec") is None and f.get("height"))
+        a = f.get("acodec") not in (None, "none") or f.get("acodec") is None
+        files.append({"url": u, "ext": f.get("ext") or "mp4", "height": f.get("height") or 0,
+                      "size": f.get("filesize") or f.get("filesize_approx") or 0,
+                      "video": bool(v), "audio": bool(a), "headers": f.get("http_headers") or {}})
+    if not files:
+        raise UserError("Is post mein download hone wali file nahi mili.")
+    thumb = data.get("thumbnail") or ""
+    return {"title": data.get("title") or data.get("description", "")[:80] or "Instagram video",
+            "uploader": data.get("uploader") or "", "thumbnail": thumb if thumb.startswith("https://") else "",
+            "duration": int(data.get("duration") or 0), "files": files}
 
 
 @app.post("/api/jobs")
