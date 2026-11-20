@@ -210,6 +210,10 @@ def build_options(info: dict) -> list[dict]:
     return opts
 
 
+SOCIAL_RE = re.compile(r"https?://([\w-]+\.)*(instagram\.com|facebook\.com|fb\.watch|tiktok\.com|x\.com|twitter\.com|"
+                       r"threads\.(net|com))/", re.I)
+
+
 def format_for(option: str) -> tuple[dict, str]:
     """yt-dlp options for an option id, plus a human label."""
     if option == "best":
@@ -272,6 +276,9 @@ def run_job(job: Job) -> None:
                 raise Canceled()
             folder.mkdir(parents=True, exist_ok=True)
             extra, _ = format_for(job.option)
+            if SOCIAL_RE.search(job.url):
+                # FB / Instagram show a black screen for re-uploaded VP9 / AV1 -> prefer H.264 + AAC
+                extra = extra | {"format_sort": ["vcodec:h264", "acodec:aac"]}
 
             def hook(d):
                 if job.cancel:
@@ -462,6 +469,7 @@ def direct(body: InfoIn, req: Request):
         v = f.get("vcodec") not in (None, "none") or (f.get("vcodec") is None and f.get("height"))
         a = f.get("acodec") not in (None, "none") or f.get("acodec") is None
         files.append({"url": u, "ext": f.get("ext") or "mp4", "height": f.get("height") or 0,
+                      "vcodec": f.get("vcodec") or "", "acodec": f.get("acodec") or "",
                       "size": f.get("filesize") or f.get("filesize_approx") or 0,
                       "video": bool(v), "audio": bool(a), "headers": f.get("http_headers") or {}})
     if not files:
